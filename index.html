@@ -16,6 +16,7 @@
     }
 
     #money-widget-container {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -32,6 +33,25 @@
       -webkit-text-fill-color: transparent;
       animation: gradientShift 6s ease infinite;
       text-align: center;
+    }
+
+    .floating-number {
+      position: absolute;
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
+      opacity: 1;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, 0);
+      pointer-events: none;
+      z-index: 10;
+      transition: transform 1s ease-out, opacity 1s ease-out;
+    }
+
+    .floating-number.animate {
+      transform: translate(-50%, -80px);
+      opacity: 0;
     }
 
     @keyframes gradientShift {
