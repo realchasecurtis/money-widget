@@ -11,8 +11,10 @@
       margin: 0;
       padding: 0;
       height: 100%;
+      width: 100%;
       background: transparent;
       font-family: 'Anton', sans-serif;
+      overflow: hidden;
     }
 
     #money-widget-container {
@@ -22,36 +24,43 @@
       justify-content: center;
       height: 100%;
       width: 100%;
+      text-align: center;
+      padding: 0 5%;
+      box-sizing: border-box;
     }
 
     .money-text {
-      font-size: 64px;
+      font-size: clamp(2rem, 10vw, 6rem);
       font-weight: 900;
       background: linear-gradient(-45deg, #00ff00, #00aa00, #00ff66, #009900);
       background-size: 400% 400%;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       animation: gradientShift 6s ease infinite;
-      text-align: center;
+      word-break: break-word;
     }
 
     .floating-number {
       position: absolute;
-      font-size: 28px;
+      font-size: 1.25rem;
       font-weight: bold;
       color: white;
       opacity: 1;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, 0);
+      right: 10%;
+      top: 35%;
       pointer-events: none;
       z-index: 10;
       transition: transform 1s ease-out, opacity 1s ease-out;
     }
 
     .floating-number.animate {
-      transform: translate(-50%, -80px);
+      transform: translateY(-50px);
       opacity: 0;
+    }
+
+    .floating-number.gold {
+      color: gold;
+      text-shadow: 0 0 5px #ffd700, 0 0 10px #ffea00;
     }
 
     @keyframes gradientShift {
