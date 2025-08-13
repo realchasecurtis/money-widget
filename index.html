@@ -1,19 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Money Widget</title>
   <style>
-    body {
+    @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+
+    html, body {
       margin: 0;
       padding: 0;
+      height: 100%;
       background: transparent;
+      font-family: 'Anton', sans-serif;
+    }
+
+    #money-widget-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      width: 100%;
+    }
+
+    .money-text {
+      font-size: 64px;
+      font-weight: 900;
+      background: linear-gradient(-45deg, #00ff00, #00aa00, #00ff66, #009900);
+      background-size: 400% 400%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 6s ease infinite;
+      text-align: center;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
   </style>
 </head>
 <body>
-  <div id="money-widget"></div>
+  <div id="money-widget-container">
+    <div id="money-widget" class="money-text"></div>
+  </div>
   <script src="money-widget.js"></script>
 </body>
 </html>
