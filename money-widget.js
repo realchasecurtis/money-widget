@@ -1,141 +1,143 @@
 (function () {
-  const el = document.getElementById("money-widget");
-  const container = document.getElementById("money-widget-container");
-  const chatFeed = document.getElementById("chat-feed");
+  const moneyEl = document.getElementById('money-total');
+  const moneySR = document.getElementById('money-total-sr');
+  const chatFeed = document.getElementById('chat-feed');
 
-  const START_TIME = new Date("2025-01-01T00:00:00Z").getTime();
-  const BASE_AMOUNT = 0;
+  const CONFIG = {
+    startISO: '2025-01-01T00:00:00Z',
+    base: 0,
+    seed: 'ultrawealth-v1',
+    eventsPerMinute: { mean: 1.4, max: 4 },
+    chat: { maxVisible: 7 }
+  };
 
-  const messagesTier1 = [
-    "Sold a haunted couch",
-    "Refilled printer ink for crypto",
-    "Scanned barcodes at a rave",
-    "Resold free hotel shampoo",
-    "Sold naming rights to a tamagotchi",
-    "Rented out a WiFi password",
-    "Microwaved burritos for hedge fund interns",
-    "Charged a neighbor to pet their own dog",
-    "Won a staring contest on Fiverr"
-  ];
+  let TIERCFG = {
+    tiers: [
+      { id: 1, weight: 62, min: 1,  max: 5,    lines: ['Sold a sticker', 'Sold a candle']},
+      { id: 2, weight: 28, min: 6,  max: 75,   lines: ['Flipped an espresso machine']},
+      { id: 3, weight: 9,  min: 200, max: 5000, lines: ['Closed a workshop contract']},
+      { id: 4, weight: 1,  min: 80000, max: 750000, lines: ['Auctioned a premium domain']}
+    ],
+    chat: { cooldownSeconds: 45, noRepeatWindow: 7 }
+  };
 
-  const messagesTier2 = [
-    "Sold naming rights to a newborn",
-    "Euthanized a dog for science credits",
-    "Auctioned off funeral livestream subscriptions",
-    "Flipped a meteor fragment on Etsy",
-    "Rented out childhood memories as NFTs",
-    "Syndicated garage sale content to cable news",
-    "Taught a parrot to gamble",
-    "Bought a home gym and rented it hourly on Craigslist",
-    "Sold fake heirlooms to real heirs"
-  ];
-
-  const messagesTier3 = [
-    "Outsourced empathy to an AI model",
-    "Harvested suburban lawn clippings for profit",
-    "Sued myself for tax relief",
-    "Developed anti-boredom pills for toddlers",
-    "Bribed a municipal drone swarm",
-    "Turned HOA complaints into a reality show",
-    "Scraped LinkedIn bios for ransom leads",
-    "Flipped a decommissioned missile silo",
-    "Resold emotional support iguanas"
-  ];
-
-  const messagesTier4 = [
-    "Crowdfunded a scheme to blot out the sun",
-    "Privatized a neighborhood’s oxygen supply",
-    "Traded futures on grandma’s lifespan",
-    "Euthanized a dog sanctuary for parking space",
-    "Bribed gravity",
-    "Declared war on a HOA",
-    "Bought Greenland and renamed it Dave",
-    "Rebranded death as a subscription service",
-    "Liquidated the moon for data credits"
-  ];
-
-  function formatMoney(amount) {
-    return "$" + amount.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    });
+  const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  function setTotal(n) {
+    moneyEl.textContent = fmt.format(n);
+    moneySR.textContent = 'Total: ' + fmt.format(n);
   }
 
-  function calculateAmount() {
-    let elapsed = Math.floor((Date.now() - START_TIME) / 1000);
-    let total = BASE_AMOUNT;
-    let seed = 1337;
-    for (let i = 0; i < elapsed; i++) {
-      if (pseudoRandom(seed + i) < 0.3) {
-        const inc = getWeightedRandom(seed * (i + 1));
-        total += inc;
-      }
+  function hashString32(s) {
+    let h = 5381 >>> 0;
+    for (let i = 0; i < s.length; i++) h = (((h << 5) + h) + s.charCodeAt(i)) >>> 0;
+    return h >>> 0;
+  }
+  function mulberry32(seed) {
+    let t = seed >>> 0;
+    return function() {
+      t += 0x6D2B79F5; t = t >>> 0;
+      let x = Math.imul(t ^ (t >>> 15), 1 | t);
+      x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const START_MS = Date.parse(CONFIG.startISO);
+  const SEED_BASE = hashString32(CONFIG.seed);
+  function minutePRNG(minuteIndex) {
+    return mulberry32(SEED_BASE ^ (minuteIndex >>> 0));
+  }
+  function weightedPick(rng, weights) {
+    const total = weights.reduce((a,b)=>a+b,0);
+    let x = rng() * total, acc = 0;
+    for (let i=0;i<weights.length;i++){ acc += weights[i]; if (x < acc) return i; }
+    return weights.length-1;
+  }
+  function randInt(rng, min, max) { return Math.floor(rng() * (max - min + 1)) + min; }
+
+  function eventsForMinute(minuteIndex) {
+    const rng = minutePRNG(minuteIndex);
+    const tiers = TIERCFG.tiers;
+    const weights = tiers.map(t => t.weight);
+    const m = CONFIG.eventsPerMinute.mean, M = CONFIG.eventsPerMinute.max;
+    let k = 0; for (let i=0;i<M;i++) if (rng() < (m / M)) k++;
+    const usedSecs = new Set(); const events = []; let sum = 0;
+    for (let i=0;i<k;i++) {
+      let sec = randInt(rng, 0, 59);
+      while (usedSecs.has(sec)) { sec = (sec + 1 + Math.floor(rng()*5)) % 60; }
+      usedSecs.add(sec);
+      const tIdx = weightedPick(rng, weights);
+      const t = tiers[tIdx];
+      const amount = randInt(rng, t.min, t.max);
+      const lineIdx = t.lines.length ? randInt(rng, 0, t.lines.length-1) : -1;
+      events.push({ sec, tierIdx: tIdx, amount, lineIdx });
+      sum += amount;
     }
+    events.sort((a,b)=>a.sec-b.sec);
+    return { sum, events, k };
+  }
+
+  function appendChat(tierIdx, text) {
+    const li = document.createElement('li');
+    li.className = `chat-line t${tierIdx+1}`;
+    li.textContent = text;
+    chatFeed.appendChild(li);
+    const maxV = CONFIG.chat.maxVisible || 7;
+    while (chatFeed.children.length > maxV) chatFeed.removeChild(chatFeed.firstChild);
+    chatFeed.scrollTop = chatFeed.scrollHeight;
+  }
+
+  function floater(amount) {
+    const chip = document.createElement('div');
+    chip.className = 'floater show';
+    chip.textContent = `+${fmt.format(amount)}`;
+    document.getElementById('counterArea').appendChild(chip);
+    setTimeout(()=>chip.remove(), 1900);
+  }
+
+  let minuteIndex = 0;
+  let baseHistorical = 0;
+  let currentMinuteEvents = [];
+  let firedCount = 0;
+
+  function historicalSumUpTo(minuteIndexExclusive) {
+    let total = CONFIG.base;
+    for (let m=0; m<minuteIndexExclusive; m++) total += eventsForMinute(m).sum;
     return total;
   }
-
-  function pseudoRandom(seed) {
-    const x = Math.sin(seed) * 10000;
-    return x - Math.floor(x);
+  function resyncForNow() {
+    const now = Date.now();
+    minuteIndex = Math.max(0, Math.floor((now - START_MS) / 60000));
+    baseHistorical = historicalSumUpTo(minuteIndex);
+    currentMinuteEvents = eventsForMinute(minuteIndex).events;
+    firedCount = 0;
+    setTotal(baseHistorical);
   }
-
-  function getWeightedRandom(seed) {
-    const r = pseudoRandom(seed);
-    if (r < 0.6) return Math.floor(pseudoRandom(seed + 1) * 500) + 1;
-    if (r < 0.85) return Math.floor(pseudoRandom(seed + 2) * 9500) + 501;
-    if (r < 0.98) return Math.floor(pseudoRandom(seed + 3) * 90000) + 10001;
-    return Math.floor(pseudoRandom(seed + 4) * 900000) + 100001;
-  }
-
-  function createFloatingNumber(increment) {
-    const floatEl = document.createElement("div");
-    floatEl.textContent = "+$" + increment.toLocaleString();
-    floatEl.className = "floating-number";
-    if (increment >= 100000) floatEl.classList.add("gold");
-
-    container.appendChild(floatEl);
-    setTimeout(() => floatEl.classList.add("animate"), 10);
-    setTimeout(() => floatEl.remove(), 1200);
-  }
-
-  function postChatMessage(amount) {
-    let pool;
-    if (amount <= 500) pool = messagesTier1;
-    else if (amount <= 10000) pool = messagesTier2;
-    else if (amount <= 100000) pool = messagesTier3;
-    else pool = messagesTier4;
-
-    const msg = pool[Math.floor(Math.random() * pool.length)];
-    const div = document.createElement("div");
-    div.className = "chat-line";
-    div.textContent = msg;
-    chatFeed.appendChild(div);
-
-    const lines = Array.from(chatFeed.children);
-    if (lines.length > 7) lines[0].remove();
-    lines.forEach((line, index) => {
-      if (index < lines.length - 5) {
-        line.classList.add("faded");
-      } else {
-        line.classList.remove("faded");
-      }
-    });
-  }
-
-  let lastValue = calculateAmount();
-  el.textContent = formatMoney(lastValue);
-
-  function updateValue() {
-    const newValue = calculateAmount();
-    if (newValue > lastValue) {
-      const diff = newValue - lastValue;
-      createFloatingNumber(diff);
-      el.textContent = formatMoney(newValue);
-      lastValue = newValue;
-      postChatMessage(diff);
+  function tick() {
+    const now = new Date();
+    const idx = Math.max(0, Math.floor((now.getTime() - START_MS) / 60000));
+    const sec = now.getUTCSeconds();
+    if (idx !== minuteIndex) {
+      minuteIndex = idx;
+      baseHistorical += eventsForMinute(idx-1 >= 0 ? idx-1 : 0).sum;
+      currentMinuteEvents = eventsForMinute(minuteIndex).events;
+      firedCount = 0;
+      setTotal(baseHistorical);
     }
-    setTimeout(updateValue, 1000);
+    while (firedCount < currentMinuteEvents.length && currentMinuteEvents[firedCount].sec <= sec) {
+      const ev = currentMinuteEvents[firedCount++];
+      const tier = TIERCFG.tiers[ev.tierIdx];
+      baseHistorical += ev.amount;
+      setTotal(baseHistorical);
+      floater(ev.amount);
+      if (tier && tier.lines && ev.lineIdx >= 0) appendChat(ev.tierIdx, tier.lines[ev.lineIdx]);
+    }
+    const delay = 1000 - (now.getMilliseconds());
+    setTimeout(tick, Math.max(10, delay));
   }
 
-  updateValue();
+  fetch('messages.json?v=1', { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .then(json => { if (json) TIERCFG = json; })
+    .catch(()=>{})
+    .finally(() => { resyncForNow(); tick(); });
 })();
