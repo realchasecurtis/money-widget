@@ -1,9 +1,58 @@
 (function () {
   const el = document.getElementById("money-widget");
   const container = document.getElementById("money-widget-container");
+  const chatFeed = document.getElementById("chat-feed");
 
   const START_TIME = new Date("2025-01-01T00:00:00Z").getTime();
   const BASE_AMOUNT = 0;
+
+  const messagesTier1 = [
+    "Sold a haunted couch",
+    "Refilled printer ink for crypto",
+    "Scanned barcodes at a rave",
+    "Resold free hotel shampoo",
+    "Sold naming rights to a tamagotchi",
+    "Rented out a WiFi password",
+    "Microwaved burritos for hedge fund interns",
+    "Charged a neighbor to pet their own dog",
+    "Won a staring contest on Fiverr"
+  ];
+
+  const messagesTier2 = [
+    "Sold naming rights to a newborn",
+    "Euthanized a dog for science credits",
+    "Auctioned off funeral livestream subscriptions",
+    "Flipped a meteor fragment on Etsy",
+    "Rented out childhood memories as NFTs",
+    "Syndicated garage sale content to cable news",
+    "Taught a parrot to gamble",
+    "Bought a home gym and rented it hourly on Craigslist",
+    "Sold fake heirlooms to real heirs"
+  ];
+
+  const messagesTier3 = [
+    "Outsourced empathy to an AI model",
+    "Harvested suburban lawn clippings for profit",
+    "Sued myself for tax relief",
+    "Developed anti-boredom pills for toddlers",
+    "Bribed a municipal drone swarm",
+    "Turned HOA complaints into a reality show",
+    "Scraped LinkedIn bios for ransom leads",
+    "Flipped a decommissioned missile silo",
+    "Resold emotional support iguanas"
+  ];
+
+  const messagesTier4 = [
+    "Crowdfunded a scheme to blot out the sun",
+    "Privatized a neighborhood’s oxygen supply",
+    "Traded futures on grandma’s lifespan",
+    "Euthanized a dog sanctuary for parking space",
+    "Bribed gravity",
+    "Declared war on a HOA",
+    "Bought Greenland and renamed it Dave",
+    "Rebranded death as a subscription service",
+    "Liquidated the moon for data credits"
+  ];
 
   function formatMoney(amount) {
     return "$" + amount.toLocaleString("en-US", {
@@ -45,12 +94,32 @@
     if (increment >= 100000) floatEl.classList.add("gold");
 
     container.appendChild(floatEl);
-    setTimeout(() => {
-      floatEl.classList.add("animate");
-    }, 10);
-    setTimeout(() => {
-      floatEl.remove();
-    }, 1200);
+    setTimeout(() => floatEl.classList.add("animate"), 10);
+    setTimeout(() => floatEl.remove(), 1200);
+  }
+
+  function postChatMessage(amount) {
+    let pool;
+    if (amount <= 500) pool = messagesTier1;
+    else if (amount <= 10000) pool = messagesTier2;
+    else if (amount <= 100000) pool = messagesTier3;
+    else pool = messagesTier4;
+
+    const msg = pool[Math.floor(Math.random() * pool.length)];
+    const div = document.createElement("div");
+    div.className = "chat-line";
+    div.textContent = msg;
+    chatFeed.appendChild(div);
+
+    const lines = Array.from(chatFeed.children);
+    if (lines.length > 7) lines[0].remove();
+    lines.forEach((line, index) => {
+      if (index < lines.length - 2) {
+        line.classList.add("faded");
+      } else {
+        line.classList.remove("faded");
+      }
+    });
   }
 
   let lastValue = calculateAmount();
@@ -63,6 +132,7 @@
       createFloatingNumber(diff);
       el.textContent = formatMoney(newValue);
       lastValue = newValue;
+      postChatMessage(diff);
     }
     setTimeout(updateValue, 1000);
   }
