@@ -12,6 +12,7 @@
     chat: { maxVisible: 5, fadeMs: 400 }
   };
 
+  // Empty default, will be replaced by JSON
   let TIERCFG = { tiers: [], chat: { cooldownSeconds: 45, noRepeatWindow: 7 } };
 
   const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -76,13 +77,12 @@
   }
   function randInt(rng, min, max) { return Math.floor(rng() * (max - min + 1)) + min; }
 
-  // ==== Exactly 60 events per minute ====
+  // Exactly 60 events per minute
   function eventsForMinute(minuteIndex) {
     const rng = minutePRNG(minuteIndex);
     const tiers = TIERCFG.tiers;
     const weights = tiers.map(t => t.weight);
 
-    const k = 60; // One event every second
     const events = [];
     let sum = 0;
 
@@ -95,19 +95,19 @@
       sum += amount;
     }
 
-    return { sum, events, k };
+    return { sum, events, k: 60 };
   }
 
-  // ==== Chat control ====
+  // Chat control
   let recentMessages = [];
   let lastTierTime = {};
-  let lastChatMinute = -1; // to enforce 1 message per minute
+  let lastChatMinute = -1;
 
   function appendChat(tierIdx, text) {
     const now = new Date();
     const thisMinute = now.getUTCMinutes();
 
-    // Only allow one chat message per minute
+    // Only 1 chat per minute
     if (thisMinute === lastChatMinute) return;
     lastChatMinute = thisMinute;
 
@@ -210,16 +210,16 @@
     setTimeout(tick, Math.max(10, delay));
   }
 
-  // Wait for messages.json before starting
+  // Wait for messages.json before starting — ensures tiers exist
   fetch('messages.json?v=1', { cache: 'no-store' })
     .then(r => r.ok ? r.json() : null)
     .then(json => {
-      if (json) {
+      if (json && Array.isArray(json.tiers) && json.tiers.length > 0) {
         TIERCFG = json;
         resyncForNow();
         tick();
       } else {
-        console.error('Failed to load messages.json');
+        console.error('messages.json missing or invalid tiers');
       }
     })
     .catch(err => console.error(err));
