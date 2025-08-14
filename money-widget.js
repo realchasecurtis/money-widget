@@ -9,7 +9,7 @@
     startISO: '2025-01-01T00:00:00Z',
     base: 0,
     seed: 'ultrawealth-v1',
-    eventsPerMinute: { mean: 22, max: 33 },
+    eventsPerMinute: { mean: 17, max: 25 },
     chat: { maxVisible: 5, fadeMs: 400 }
   };
 
