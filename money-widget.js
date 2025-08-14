@@ -18,7 +18,7 @@
       { id: 1, weight: 46, min: 1,  max: 20,    lines: ['Sold a sticker', 'Sold a candle']},
       { id: 2, weight: 24, min: 21,  max: 100,   lines: ['Flipped an espresso machine']},
       { id: 3, weight: 19,  min: 101, max: 5000, lines: ['Closed a workshop contract']},
-      { id: 4, weight: 11,  min: 80000, max: 100000, lines: ['Auctioned a premium domain']}
+      { id: 4, weight: 11,  min: 80000, max: 1000000, lines: ['Auctioned a premium domain']}
     ],
     chat: { cooldownSeconds: 45, noRepeatWindow: 7 }
   };
