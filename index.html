@@ -4,103 +4,98 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Money Widget + Tiered Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: transparent;
-      font-family: 'Anton', sans-serif;
+    :root {
+      --bg: transparent;
+      --panel: rgba(0,0,0,0.35);
+      --panel-blur: blur(8px);
+      --ring: rgba(255,255,255,0.18);
+      --text: #ffffff;
+      --accent1: #ffd166;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; background: var(--bg); font-family: 'Anton', system-ui, sans-serif; }
+    #widget {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      grid-template-rows: 1fr;
+      grid-template-areas: "counter chat";
+      gap: 24px;
+      height: 100dvh;
+      padding: 20px;
+      align-items: end;
       overflow: hidden;
     }
-
-    #money-widget-container {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 65%;
-      width: 100%;
-      padding: 0 5%;
-      box-sizing: border-box;
+    #counterArea { grid-area: counter; position: relative; align-self: end; }
+    #chatArea {
+      grid-area: chat;
+      display: flex; flex-direction: column;
+      min-height: min(32vh, 240px);
+      height: min(45vh, 460px);
+      max-height: 50vh;
+      background: var(--panel);
+      backdrop-filter: var(--panel-blur);
+      border: 1px solid var(--ring);
+      border-radius: 18px;
+      overflow: hidden;
     }
-
-    .money-text {
-      font-size: clamp(2.5rem, 12vw, 7.5rem);
-      font-weight: 900;
-      background: linear-gradient(-45deg, #00ff00, #00aa00, #00ff66, #009900);
-      background-size: 400% 400%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradientShift 6s ease infinite;
-      word-break: break-word;
-      text-align: center;
-    }
-
     #chat-feed {
-      position: absolute;
-      top: 72%;
-      left: 5%;
-      width: 90%;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      font-size: 1.1rem;
-      font-weight: 900;
-      pointer-events: none;
+      margin: 0; padding: 14px 14px 18px;
+      list-style: none; color: var(--text);
+      overflow: auto;
+      scroll-behavior: smooth;
+      flex: 1 1 auto;
     }
-
-    .chat-line {
-      color: white;
-      opacity: 1;
-      transition: opacity 1s ease-in;
-      text-shadow: 1px 1px 2px black;
-      text-align: left;
-      width: auto;
+    .chat-line { opacity: 0.92; letter-spacing: 0.3px; line-height: 1.2; margin: 0 0 8px; font-size: clamp(13px, 2.1vw, 18px); }
+    .t1 { opacity: 0.90; }
+    .t2 { opacity: 0.95; }
+    .t3 { text-shadow: 0 0 10px rgba(255,255,255,0.2); }
+    .t4 { text-shadow: 0 0 14px rgba(255,241,190,0.35); }
+    .money-text {
+      font-size: clamp(56px, 11vw, 240px);
+      line-height: 1.0;
+      color: transparent;
+      background: linear-gradient(270deg, #fff, #ffee9c, #fff);
+      background-size: 300% 300%;
+      -webkit-background-clip: text; background-clip: text;
+      animation: shimmer 12s ease infinite;
+      margin: 0;
+      text-wrap: balance;
+      filter: drop-shadow(0 1px 0 rgba(0,0,0,0.35));
     }
-
-    .chat-line.faded {
-      opacity: 0;
-    }
-
-    .floating-number {
-      position: absolute;
-      font-size: 1.25rem;
-      font-weight: bold;
-      color: white;
-      opacity: 1;
-      right: 10%;
-      top: 35%;
-      pointer-events: none;
-      z-index: 10;
-      transition: transform 1s ease-out, opacity 1s ease-out;
-    }
-
-    .floating-number.animate {
-      transform: translateY(-50px);
-      opacity: 0;
-    }
-
-    .floating-number.gold {
-      color: gold;
-      text-shadow: 0 0 5px #ffd700, 0 0 10px #ffea00;
-    }
-
-    @keyframes gradientShift {
+    @keyframes shimmer {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
+    .floater { position: absolute; right: 0; bottom: 0; font-size: clamp(16px, 3.5vw, 48px); color: var(--accent1); opacity: 0; transform: translateY(0); pointer-events: none; text-shadow: 0 0 8px rgba(255, 209, 102, 0.35); }
+    .floater.show { animation: floatUp 1800ms ease forwards; }
+    @keyframes floatUp { 0%{opacity:0; transform:translateY(14px)} 20%{opacity:1} 100%{opacity:0; transform:translateY(-72px)} }
+    .sr-only { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+    @media (max-width: 900px) {
+      #widget { grid-template-columns: 1fr; grid-template-rows: auto minmax(160px, 45vh); grid-template-areas: "counter" "chat"; align-items: start; gap: 16px; }
+      .money-text { font-size: clamp(44px, 12vw, 120px); }
+      #chatArea { height: min(45vh, 420px); min-height: 180px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .money-text { animation: none; background: #fff; color:#fff; -webkit-background-clip: initial; background-clip: initial; }
+      .floater { display:none; }
+    }
   </style>
 </head>
 <body>
-  <div id="money-widget-container">
-    <div id="money-widget" class="money-text"></div>
+  <div id="widget">
+    <div id="counterArea">
+      <h1 id="money-total" class="money-text" role="status" aria-live="polite">$0</h1>
+      <span id="money-total-sr" class="sr-only">Total: $0</span>
+    </div>
+    <div id="chatArea" aria-live="polite" aria-relevant="additions">
+      <ul id="chat-feed"></ul>
+    </div>
   </div>
-  <div id="chat-feed"></div>
-  <script src="money-widget.js"></script>
+  <script src="money-widget.js" defer></script>
 </body>
 </html>
