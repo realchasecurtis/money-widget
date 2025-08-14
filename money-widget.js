@@ -13,24 +13,17 @@
     chat: { maxVisible: 5, fadeMs: 400 }
   };
 
-  let TIERCFG = {
-    tiers: [
-      { id: 1, weight: 62, min: 1,  max: 5,    lines: ['Sold a sticker', 'Sold a candle']},
-      { id: 2, weight: 28, min: 6,  max: 75,   lines: ['Flipped an espresso machine']},
-      { id: 3, weight: 9,  min: 200, max: 5000, lines: ['Closed a workshop contract']},
-      { id: 4, weight: 1,  min: 80000, max: 750000, lines: ['Auctioned a premium domain']}
-    ],
-    chat: { cooldownSeconds: 45, noRepeatWindow: 7 }
-  };
+  // Empty placeholder — will be replaced entirely by messages.json
+  let TIERCFG = { tiers: [], chat: { cooldownSeconds: 45, noRepeatWindow: 7 } };
 
   const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
   function setTotal(n) {
     moneyEl.textContent = fmt.format(n);
     moneySR.textContent = 'Total: ' + fmt.format(n);
-    requestAnimationFrame(autoFit); // ensure digits never clip
+    requestAnimationFrame(autoFit);
   }
 
-  // ----- Robust auto-fit (binary search font size to fit width & height) -----
+  // Auto-fit
   const autoFit = (() => {
     let rafId = null;
     return function autoFit() {
@@ -39,18 +32,15 @@
         const maxW = Math.max(0, fitBox.clientWidth - 8);
         const maxH = Math.max(0, fitBox.clientHeight - 8);
         if (!maxW || !maxH) return;
-
-        // Binary search the largest font size that fits in both width and height
-        let low = 10, high = 1024; // px
-        const originalStyle = moneyEl.style.fontSize;
+        let low = 10, high = 1024;
         while (low < high) {
           const mid = Math.floor((low + high + 1) / 2);
           moneyEl.style.fontSize = mid + 'px';
           const rect = moneyEl.getBoundingClientRect();
           if (rect.width <= maxW && rect.height <= maxH) {
-            low = mid; // fits — try larger
+            low = mid;
           } else {
-            high = mid - 1; // too big — go smaller
+            high = mid - 1;
           }
         }
         moneyEl.style.fontSize = low + 'px';
@@ -58,7 +48,6 @@
     };
   })();
 
-  // Re-fit on resize/orientation + when fonts load
   const ro = new ResizeObserver(autoFit);
   ro.observe(fitBox);
   window.addEventListener('resize', autoFit);
@@ -111,9 +100,26 @@
     return { sum, events, k };
   }
 
+  // No-repeat + cooldown
+  let recentMessages = [];
+  let lastTierTime = {};
   function appendChat(tierIdx, text) {
     const maxV = CONFIG.chat.maxVisible || 5;
     const fadeMs = CONFIG.chat.fadeMs || 400;
+    const noRepeatWindow = TIERCFG.chat?.noRepeatWindow || 0;
+    const cooldownSeconds = TIERCFG.chat?.cooldownSeconds || 0;
+    const now = Date.now();
+    if (cooldownSeconds > 0 && lastTierTime[tierIdx] && now - lastTierTime[tierIdx] < cooldownSeconds * 1000) {
+      return;
+    }
+    if (noRepeatWindow > 0 && recentMessages.includes(text)) {
+      return;
+    }
+    lastTierTime[tierIdx] = now;
+    recentMessages.push(text);
+    if (recentMessages.length > noRepeatWindow) {
+      recentMessages.shift();
+    }
     if (chatFeed.children.length >= maxV) {
       const oldest = chatFeed.firstElementChild;
       if (oldest) {
@@ -125,7 +131,6 @@
       }
     }
     doAppend();
-
     function doAppend() {
       const li = document.createElement('li');
       li.className = `chat-line t${tierIdx+1}`;
@@ -134,20 +139,16 @@
     }
   }
 
-  // Create a pop exactly at the top-right of the money text
   function floater(amount, tierIdx) {
     const chip = document.createElement('div');
-    chip.className = 'floater show ' + (tierIdx === 3 ? 'gold' : 'white'); // tierIdx 3 == Tier 4
+    chip.className = 'floater show ' + (tierIdx === 3 ? 'gold' : 'white');
     chip.textContent = `+${fmt.format(amount)}`;
-
-    // Position near money text's top-right corner
     const numberRect = moneyEl.getBoundingClientRect();
     const containerRect = counterArea.getBoundingClientRect();
-    const x = (numberRect.right - containerRect.left) - 6; // inset a bit from right edge
-    const y = (numberRect.top - containerRect.top) - 8;    // slightly above the top
+    const x = (numberRect.right - containerRect.left) - 6;
+    const y = (numberRect.top - containerRect.top) - 8;
     chip.style.left = x + 'px';
     chip.style.top  = y + 'px';
-
     counterArea.appendChild(chip);
     setTimeout(()=>chip.remove(), 1300);
   }
@@ -187,15 +188,26 @@
       baseHistorical += ev.amount;
       setTotal(baseHistorical);
       floater(ev.amount, ev.tierIdx);
-      if (tier && tier.lines && ev.lineIdx >= 0) appendChat(ev.tierIdx, tier.lines[ev.lineIdx]);
+      if (tier && tier.lines && ev.lineIdx >= 0) {
+        appendChat(ev.tierIdx, tier.lines[ev.lineIdx]);
+      }
     }
     const delay = 1000 - (now.getMilliseconds());
     setTimeout(tick, Math.max(10, delay));
   }
 
+  // ✅ Now we only start after JSON is loaded
   fetch('messages.json?v=1', { cache: 'no-store' })
     .then(r => r.ok ? r.json() : null)
-    .then(json => { if (json) TIERCFG = json; })
-    .catch(()=>{})
-    .finally(() => { resyncForNow(); tick(); });
+    .then(json => {
+      if (json) {
+        TIERCFG = json;
+        resyncForNow();
+        tick();
+      } else {
+        console.error('Failed to load messages.json');
+      }
+    })
+    .catch(err => console.error(err));
+
 })();
