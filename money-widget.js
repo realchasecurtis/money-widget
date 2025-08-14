@@ -78,12 +78,10 @@
   function appendChat(tierIdx, text) {
     const maxV = CONFIG.chat.maxVisible || 5;
     const fadeMs = CONFIG.chat.fadeMs || 400;
-    // If we're at capacity, fade out & remove the oldest FIRST to keep exactly 5 visible
     if (chatFeed.children.length >= maxV) {
       const oldest = chatFeed.firstElementChild;
       if (oldest) {
         oldest.classList.add('fade-out');
-        // lock height to avoid jump during fade
         oldest.style.height = oldest.offsetHeight + 'px';
         oldest.style.overflow = 'hidden';
         setTimeout(() => { oldest.remove(); doAppend(); }, fadeMs);
