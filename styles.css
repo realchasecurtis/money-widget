@@ -1,66 +1,89 @@
+
 body {
-  margin: 0;
-  background-color: #000;
-  color: #00ff00;
-  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-  overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+    overflow-x: hidden;
 }
+
 .container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 60vh;
-  text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding-top: 10vh;
 }
+
 .money-counter {
-  font-size: 7vw;
-  font-weight: bold;
-  background: linear-gradient(90deg, darkgreen, green, lightgreen, green);
-  background-size: 400% 100%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shine 5s linear infinite;
-  position: relative;
+    font-size: 10vw;
+    font-weight: bold;
+    background: linear-gradient(90deg, #00ff00, #004400, #00aa00);
+    background-size: 200% auto;
+    color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: shine 3s linear infinite;
+    position: relative;
+    text-align: center;
+    word-break: break-word;
 }
+
 @keyframes shine {
-  to {
-    background-position: 400% 0;
-  }
+    to {
+        background-position: 200% center;
+    }
 }
-.floating-container {
-  position: absolute;
-  top: 30%;
-  width: 100%;
-  pointer-events: none;
+
+#floating-values {
+    position: absolute;
+    top: 20vh;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 10;
 }
-.floating-number {
-  position: absolute;
-  right: 30%;
-  font-size: 1.5rem;
-  color: white;
-  animation: floatUp 2s ease-out forwards;
+
+.floating-text {
+    position: absolute;
+    color: white;
+    font-size: 1.5rem;
+    opacity: 1;
+    animation: floatUp 2s ease-out forwards;
 }
-.floating-number.gold {
-  color: gold;
+
+.floating-text.gold {
+    color: gold;
 }
+
 @keyframes floatUp {
-  0% { transform: translateY(0); opacity: 1; }
-  100% { transform: translateY(-50px); opacity: 0; }
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-50px); opacity: 0; }
 }
-.chat-feed {
-  margin: 3rem 1rem 0 1rem;
-  font-size: 1.25rem;
-  color: white;
-  text-align: left;
-  max-width: 90%;
-  margin-left: auto;
-  margin-right: auto;
+
+#chat-box {
+    margin-top: 5vh;
+    width: 90%;
+    max-width: 800px;
+    font-size: 1.25rem;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    font-family: Impact, sans-serif;
 }
-.chat-line {
-  opacity: 1;
-  animation: fadeOut 6s forwards;
+
+.chat-message {
+    opacity: 1;
+    animation: fadeOut 6s ease-out forwards;
+    text-align: left;
+    width: 100%;
+    padding-left: 10px;
 }
+
 @keyframes fadeOut {
-  0%, 70% { opacity: 1; }
-  100% { opacity: 0; }
+    0% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
 }

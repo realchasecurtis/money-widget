@@ -1,71 +1,73 @@
-let counter = document.getElementById("moneyCounter");
-let chatFeed = document.getElementById("chatFeed");
-let floatingContainer = document.getElementById("floatingContainer");
-let total = getStoredTotal();
 
-function getStoredTotal() {
-  const baseDate = new Date("2025-01-01T00:00:00Z");
-  const now = new Date();
-  const secondsPassed = Math.floor((now - baseDate) / 1000);
-  let amount = 0;
-  for (let i = 0; i < secondsPassed; i++) {
-    if (Math.random() < 0.5) {
-      amount += getRandomGain();
-    }
-  }
-  return amount;
-}
+const startDate = new Date('2025-01-01T00:00:00Z');
+const baseAmount = 20000000;
+let currentAmount = calculateCurrentAmount();
 
-function getRandomGain() {
-  const rand = Math.random();
-  if (rand < 0.6) return Math.floor(Math.random() * 100) + 1;
-  if (rand < 0.9) return Math.floor(Math.random() * 9900) + 100;
-  return Math.floor(Math.random() * 990000) + 10000;
-}
+const moneyEl = document.getElementById('money');
+const floatingValuesEl = document.getElementById('floating-values');
+const chatBoxEl = document.getElementById('chat-box');
+let messages = {};
 
-function fetchMessages() {
-  return fetch("messages.json").then(res => res.json());
+fetch('messages.json')
+    .then(res => res.json())
+    .then(data => {
+        messages = data;
+        renderMoney();
+        setInterval(updateMoney, 1000);
+    });
+
+function calculateCurrentAmount() {
+    const now = new Date();
+    const secondsElapsed = Math.floor((now - startDate) / 1000);
+    return baseAmount;
 }
 
 function formatMoney(amount) {
-  return `$${amount.toLocaleString()}`;
+    return '$' + amount.toLocaleString();
 }
 
-function showFloatingNumber(amount) {
-  const float = document.createElement("div");
-  float.className = "floating-number";
-  float.innerText = `+${formatMoney(amount)}`;
-  if (amount > 10000) float.classList.add("gold");
-  floatingContainer.appendChild(float);
-  setTimeout(() => float.remove(), 2000);
+function renderMoney() {
+    moneyEl.textContent = formatMoney(currentAmount);
 }
 
-function updateChat(message) {
-  const line = document.createElement("div");
-  line.className = "chat-line";
-  line.innerText = message;
-  chatFeed.appendChild(line);
-  const lines = chatFeed.querySelectorAll(".chat-line");
-  if (lines.length > 7) lines[0].remove();
+function updateMoney() {
+    if (Math.random() < 0.6) {
+        const increase = getRandomIncrease();
+        currentAmount += increase.amount;
+        renderMoney();
+        showFloatingValue(increase.amount, increase.tier);
+        addChatMessage(increase.tier);
+    }
 }
 
-function selectMessage(amount, messages) {
-  if (amount <= 100) return messages.low[Math.floor(Math.random() * messages.low.length)];
-  if (amount <= 10000) return messages.mid[Math.floor(Math.random() * messages.mid.length)];
-  return messages.high[Math.floor(Math.random() * messages.high.length)];
+function getRandomIncrease() {
+    const rand = Math.random();
+    if (rand < 0.6) return { amount: getRandomInt(1, 5000), tier: "low" };
+    if (rand < 0.9) return { amount: getRandomInt(5001, 50000), tier: "medium" };
+    return { amount: getRandomInt(50001, 1000000), tier: "high" };
 }
 
-function updateCounter(messages) {
-  if (Math.random() < 0.5) {
-    const gain = getRandomGain();
-    total += gain;
-    counter.textContent = formatMoney(total);
-    showFloatingNumber(gain);
-    updateChat(selectMessage(gain, messages));
-  }
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-fetchMessages().then(messages => {
-  counter.textContent = formatMoney(total);
-  setInterval(() => updateCounter(messages), 1000);
-});
+function showFloatingValue(amount, tier) {
+    const floatEl = document.createElement('div');
+    floatEl.className = 'floating-text' + (tier === 'high' ? ' gold' : '');
+    floatEl.textContent = '+' + formatMoney(amount);
+    floatingValuesEl.appendChild(floatEl);
+    setTimeout(() => floatEl.remove(), 2000);
+}
+
+function addChatMessage(tier) {
+    if (!messages[tier]) return;
+    const msg = messages[tier][Math.floor(Math.random() * messages[tier].length)];
+    const msgEl = document.createElement('div');
+    msgEl.className = 'chat-message';
+    msgEl.textContent = msg;
+    chatBoxEl.appendChild(msgEl);
+
+    if (chatBoxEl.children.length > 7) {
+        chatBoxEl.removeChild(chatBoxEl.children[0]);
+    }
+}
