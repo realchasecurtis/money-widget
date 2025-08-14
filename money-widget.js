@@ -112,26 +112,30 @@
   }
 
   function appendChat(tierIdx, text) {
-    const maxV = CONFIG.chat.maxVisible || 5;
-    const fadeMs = CONFIG.chat.fadeMs || 100;
-    if (chatFeed.children.length >= maxV) {
-      const oldest = chatFeed.firstElementChild;
-      if (oldest) {
-        oldest.classList.add('fade-out');
-        oldest.style.height = oldest.offsetHeight + 'px';
-        oldest.style.overflow = 'hidden';
-        setTimeout(() => { oldest.remove(); doAppend(); }, fadeMs);
-        return;
-      }
-    }
-    doAppend();
+  const maxV = CONFIG.chat.maxVisible || 5;
 
-    function doAppend() {
-      const li = document.createElement('li');
-      li.className = `chat-line t${tierIdx+1}`;
-      li.textContent = text;
-      chatFeed.appendChild(li);
+  // If at cap, remove oldest immediately
+  if (chatFeed.children.length >= maxV) {
+    const oldest = chatFeed.firstElementChild;
+    if (oldest) {
+      // Trigger fade-out instantly
+      oldest.classList.add('fade-out');
+
+      // Force a reflow so the browser applies fade-out style
+      void oldest.offsetWidth;
+
+      // Remove from DOM after fadeMs, but append new message right away
+      setTimeout(() => oldest.remove(), CONFIG.chat.fadeMs || 400);
+      oldest.remove(); // <-- This is the actual DOM cap enforcement
     }
+  }
+
+  // Append the new message
+  const li = document.createElement('li');
+  li.className = `chat-line t${tierIdx+1}`;
+  li.textContent = text;
+  chatFeed.appendChild(li);
+}
   }
 
   // Create a pop exactly at the top-right of the money text
