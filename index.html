@@ -16,27 +16,45 @@
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; background: var(--bg); font-family: 'Anton', system-ui, sans-serif; color: var(--text); }
-    #widget { position: relative; height: 100dvh; width: 100%; overflow: hidden; }
+    #widget {
+      position: relative;
+      height: 100dvh;
+      height: 100svh; /* iOS safe small viewport */
+      width: 100%;
+      overflow: hidden;
+    }
 
-    /* Center the money value perfectly */
+    /* Perfect centering with responsive/safe-area padding */
     #counterArea {
       position: absolute; inset: 0;
       display: grid; place-items: center;
-      padding: clamp(16px, 6vw, 64px);
+      padding-left: max(clamp(16px, 6vw, 64px), env(safe-area-inset-left));
+      padding-right: max(clamp(16px, 6vw, 64px), env(safe-area-inset-right));
+      padding-top: max(clamp(16px, 6vw, 64px), env(safe-area-inset-top));
+      padding-bottom: max(clamp(16px, 6vw, 64px), env(safe-area-inset-bottom));
       text-align: center;
     }
-    /* Living green gradient INSIDE the text (no outer glow) */
+
+    /* The measurable box we fit into (prevents clipping) */
+    #fitBox {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+    }
+
+    /* Strictly-green living gradient INSIDE the text */
     .money-text {
       margin: 0;
-      font-size: clamp(64px, 13vw, 280px);
       line-height: 0.95;
       color: transparent;
-      /* strictly green spectrum */
       background: linear-gradient(120deg,
         #0b3d12, #0c6b2d, #109d49, #16a34a, #22c55e, #4ade80, #16a34a, #0b3d12);
       background-size: 400% 400%;
       -webkit-background-clip: text; background-clip: text;
       animation: moneyShift 10s ease-in-out infinite;
+      /* font-size will be set inline by JS auto-fit */
+      white-space: nowrap;
     }
     @keyframes moneyShift {
       0% { background-position: 0% 50%; }
@@ -44,7 +62,7 @@
       100% { background-position: 0% 50%; }
     }
 
-    /* Hit pops: position is set by JS based on main number's top-right corner */
+    /* Hit pops (top-right of the number; JS positions them) */
     .floater {
       position: absolute;
       font-size: clamp(18px, 3.8vw, 56px);
@@ -70,9 +88,9 @@
     /* Chat UNDER the number, left-aligned (unchanged) */
     #chatArea {
       position: absolute;
-      left: clamp(12px, 4vw, 28px);
-      bottom: clamp(12px, 4vw, 28px);
-      width: min(960px, calc(100% - 2*clamp(12px, 4vw, 28px)));
+      left: max(clamp(12px, 4vw, 28px), env(safe-area-inset-left));
+      bottom: max(clamp(12px, 4vw, 28px), env(safe-area-inset-bottom));
+      width: min(960px, calc(100% - 2*max(clamp(12px, 4vw, 28px), env(safe-area-inset-left))));
     }
     #chat-feed { margin: 0; padding: 0; list-style: none; }
     .chat-line {
@@ -94,8 +112,10 @@
 <body>
   <div id="widget">
     <div id="counterArea">
-      <h1 id="money-total" class="money-text" role="status" aria-live="polite">$0</h1>
-      <span id="money-total-sr" class="sr-only">Total: $0</span>
+      <div id="fitBox">
+        <h1 id="money-total" class="money-text" role="status" aria-live="polite">$0</h1>
+        <span id="money-total-sr" class="sr-only">Total: $0</span>
+      </div>
     </div>
 
     <div id="chatArea" aria-live="polite" aria-relevant="additions">

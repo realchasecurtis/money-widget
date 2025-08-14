@@ -3,6 +3,7 @@
   const moneySR = document.getElementById('money-total-sr');
   const chatFeed = document.getElementById('chat-feed');
   const counterArea = document.getElementById('counterArea');
+  const fitBox = document.getElementById('fitBox');
 
   const CONFIG = {
     startISO: '2025-01-01T00:00:00Z',
@@ -26,7 +27,42 @@
   function setTotal(n) {
     moneyEl.textContent = fmt.format(n);
     moneySR.textContent = 'Total: ' + fmt.format(n);
+    requestAnimationFrame(autoFit); // ensure digits never clip
   }
+
+  // ----- Robust auto-fit (binary search font size to fit width & height) -----
+  const autoFit = (() => {
+    let rafId = null;
+    return function autoFit() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const maxW = Math.max(0, fitBox.clientWidth - 8);
+        const maxH = Math.max(0, fitBox.clientHeight - 8);
+        if (!maxW || !maxH) return;
+
+        // Binary search the largest font size that fits in both width and height
+        let low = 10, high = 1024; // px
+        const originalStyle = moneyEl.style.fontSize;
+        while (low < high) {
+          const mid = Math.floor((low + high + 1) / 2);
+          moneyEl.style.fontSize = mid + 'px';
+          const rect = moneyEl.getBoundingClientRect();
+          if (rect.width <= maxW && rect.height <= maxH) {
+            low = mid; // fits — try larger
+          } else {
+            high = mid - 1; // too big — go smaller
+          }
+        }
+        moneyEl.style.fontSize = low + 'px';
+      });
+    };
+  })();
+
+  // Re-fit on resize/orientation + when fonts load
+  const ro = new ResizeObserver(autoFit);
+  ro.observe(fitBox);
+  window.addEventListener('resize', autoFit);
+  document.fonts && document.fonts.ready && document.fonts.ready.then(autoFit);
 
   function hashString32(s) {
     let h = 5381 >>> 0;
@@ -107,9 +143,8 @@
     // Position near money text's top-right corner
     const numberRect = moneyEl.getBoundingClientRect();
     const containerRect = counterArea.getBoundingClientRect();
-    // Offset a touch inward so the pop appears attached to the corner
-    const x = (numberRect.right - containerRect.left) - 6; // 6px inset from the right edge
-    const y = (numberRect.top - containerRect.top) - 8;    // 8px above the top
+    const x = (numberRect.right - containerRect.left) - 6; // inset a bit from right edge
+    const y = (numberRect.top - containerRect.top) - 8;    // slightly above the top
     chip.style.left = x + 'px';
     chip.style.top  = y + 'px';
 
