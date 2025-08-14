@@ -1,0 +1,66 @@
+body {
+  margin: 0;
+  background-color: #000;
+  color: #00ff00;
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  overflow-x: hidden;
+}
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  text-align: center;
+}
+.money-counter {
+  font-size: 7vw;
+  font-weight: bold;
+  background: linear-gradient(90deg, darkgreen, green, lightgreen, green);
+  background-size: 400% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 5s linear infinite;
+  position: relative;
+}
+@keyframes shine {
+  to {
+    background-position: 400% 0;
+  }
+}
+.floating-container {
+  position: absolute;
+  top: 30%;
+  width: 100%;
+  pointer-events: none;
+}
+.floating-number {
+  position: absolute;
+  right: 30%;
+  font-size: 1.5rem;
+  color: white;
+  animation: floatUp 2s ease-out forwards;
+}
+.floating-number.gold {
+  color: gold;
+}
+@keyframes floatUp {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-50px); opacity: 0; }
+}
+.chat-feed {
+  margin: 3rem 1rem 0 1rem;
+  font-size: 1.25rem;
+  color: white;
+  text-align: left;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.chat-line {
+  opacity: 1;
+  animation: fadeOut 6s forwards;
+}
+@keyframes fadeOut {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
