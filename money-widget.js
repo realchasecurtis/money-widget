@@ -2,7 +2,7 @@
   const moneyEl = document.getElementById('money-total');
   const moneySR = document.getElementById('money-total-sr');
   const chatFeed = document.getElementById('chat-feed');
-  const counterArea = document.getElementById('counterArea');
+  const moneyWrap = document.getElementById('money-wrap');
 
   const CONFIG = {
     startISO: '2025-01-01T00:00:00Z',
@@ -23,35 +23,39 @@
   };
 
   const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+  // --- Autosize to prevent cut-off on mobile ---
+  function autosize() {
+    // reset scale to measure natural width
+    moneyWrap.style.setProperty('--scale', 1);
+    // allow next frame to paint, then measure
+    requestAnimationFrame(() => {
+      const container = moneyWrap.parentElement;
+      const avail = container.clientWidth - 8; // small breathing room
+      const needed = moneyEl.scrollWidth;
+      const scale = Math.min(1, avail / Math.max(needed, 1));
+      moneyWrap.style.setProperty('--scale', scale.toFixed(4));
+    });
+  }
+  window.addEventListener('resize', autosize);
+
   function setTotal(n) {
     moneyEl.textContent = fmt.format(n);
     moneySR.textContent = 'Total: ' + fmt.format(n);
+    autosize();
   }
 
-  function hashString32(s) {
-    let h = 5381 >>> 0;
-    for (let i = 0; i < s.length; i++) h = (((h << 5) + h) + s.charCodeAt(i)) >>> 0;
-    return h >>> 0;
-  }
+  // --- PRNG & schedule ---
+  function hashString32(s) { let h = 5381 >>> 0; for (let i=0;i<s.length;i++) h = (((h<<5)+h)+s.charCodeAt(i))>>>0; return h>>>0; }
   function mulberry32(seed) {
-    let t = seed >>> 0;
-    return function() {
-      t += 0x6D2B79F5; t = t >>> 0;
-      let x = Math.imul(t ^ (t >>> 15), 1 | t);
-      x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
-      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
-    };
+    let t = seed>>>0;
+    return function() { t=(t+0x6D2B79F5)>>>0; let x=Math.imul(t^(t>>>15),1|t); x^=x+Math.imul(x^(x>>>7),61|x); return ((x^(x>>>14))>>>0)/4294967296; };
   }
   const START_MS = Date.parse(CONFIG.startISO);
   const SEED_BASE = hashString32(CONFIG.seed);
-  function minutePRNG(minuteIndex) { return mulberry32(SEED_BASE ^ (minuteIndex >>> 0)); }
-  function weightedPick(rng, weights) {
-    const total = weights.reduce((a,b)=>a+b,0);
-    let x = rng() * total, acc = 0;
-    for (let i=0;i<weights.length;i++){ acc += weights[i]; if (x < acc) return i; }
-    return weights.length-1;
-  }
-  function randInt(rng, min, max) { return Math.floor(rng() * (max - min + 1)) + min; }
+  function minutePRNG(minuteIndex){ return mulberry32(SEED_BASE ^ (minuteIndex>>>0)); }
+  function weightedPick(rng, weights){ const total = weights.reduce((a,b)=>a+b,0); let x = rng()*total, acc=0; for (let i=0;i<weights.length;i++){ acc+=weights[i]; if (x<acc) return i; } return weights.length-1; }
+  function randInt(rng, min, max){ return Math.floor(rng()*(max-min+1))+min; }
 
   function eventsForMinute(minuteIndex) {
     const rng = minutePRNG(minuteIndex);
@@ -75,6 +79,7 @@
     return { sum, events, k };
   }
 
+  // --- Chat helpers (unchanged) ---
   function appendChat(tierIdx, text) {
     const maxV = CONFIG.chat.maxVisible || 5;
     const fadeMs = CONFIG.chat.fadeMs || 400;
@@ -89,7 +94,6 @@
       }
     }
     doAppend();
-
     function doAppend() {
       const li = document.createElement('li');
       li.className = `chat-line t${tierIdx+1}`;
@@ -98,14 +102,22 @@
     }
   }
 
-  function floater(amount, tierIdx) {
-    const chip = document.createElement('div');
-    chip.className = 'floater show ' + (tierIdx === 3 ? 'gold' : 'white'); // tierIdx is 0-based; t4 => idx 3
-    chip.textContent = `+${fmt.format(amount)}`;
-    counterArea.appendChild(chip);
-    setTimeout(()=>chip.remove(), 1300);
+  // --- MapleStory-style hit pop ---
+  function hitPop(amount, tierIdx) {
+    const el = document.createElement('div');
+    el.className = 'hitpop ' + (tierIdx === 3 ? 'gold' : 'white'); // 0-based; t4 -> idx 3
+    el.textContent = `+${fmt.format(amount)}`;
+    // slight jitter for variety
+    const jitterX = (Math.random() * 12 - 6);   // -6..6 px
+    const jitterY = (Math.random() * 6 - 3);    // -3..3 px
+    el.style.transform = `translate(${jitterX}px, ${6 + jitterY}px) scale(0.8)`;
+    moneyWrap.appendChild(el);
+    // trigger animation next frame
+    requestAnimationFrame(() => el.classList.add('show'));
+    setTimeout(() => el.remove(), 1000);
   }
 
+  // --- Main loop ---
   let minuteIndex = 0;
   let baseHistorical = 0;
   let currentMinuteEvents = [];
@@ -140,7 +152,7 @@
       const tier = TIERCFG.tiers[ev.tierIdx];
       baseHistorical += ev.amount;
       setTotal(baseHistorical);
-      floater(ev.amount, ev.tierIdx);
+      hitPop(ev.amount, ev.tierIdx);               // <-- new maple-style pop
       if (tier && tier.lines && ev.lineIdx >= 0) appendChat(ev.tierIdx, tier.lines[ev.lineIdx]);
     }
     const delay = 1000 - (now.getMilliseconds());

@@ -8,104 +8,64 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
   <style>
-    :root {
+    :root{
       --bg: transparent;
       --text: #ffffff;
-      --gold1: #ffe8a3;
-      --gold2: #ffb800;
+      --gold1:#ffe8a3;
+      --gold2:#ffb800;
     }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; background: var(--bg); font-family: 'Anton', system-ui, sans-serif; color: var(--text); }
-    /* Stage */
-    #widget {
-      position: relative;
-      height: 100dvh;
-      width: 100%;
-      overflow: hidden;
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);font-family:'Anton',system-ui,sans-serif;color:var(--text)}
+    #widget{position:relative;height:100dvh;width:100%;overflow:hidden}
+    /* Center block */
+    #counterArea{position:absolute;inset:0;display:grid;place-items:center;padding:clamp(14px,6vw,64px);text-align:center}
+    /* Wrap to anchor hit pops at top-left relative to the text */
+    #money-wrap{position:relative;display:inline-block;transform:scale(var(--scale,1));transform-origin:center center}
+    .money-text{
+      margin:0;font-size:clamp(64px,13vw,280px);line-height:.95;color:transparent;
+      background:linear-gradient(120deg,#0f5132,#00c853,#22d46a,#0ea5a5,#16a34a,#0f5132);
+      background-size:400% 400%;
+      -webkit-background-clip:text;background-clip:text;
+      animation:moneyShift 10s ease-in-out infinite;
+      white-space:nowrap; /* prevent wrapping */
     }
-    /* Center the money value perfectly */
-    #counterArea {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      padding: clamp(16px, 6vw, 64px); /* breathing room on mobile */
-      text-align: center;
+    @keyframes moneyShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    /* Hit pop (MapleStory-style) near top-left of number */
+    .hitpop{
+      position:absolute;top:-8%;left:-6%;
+      font-size:clamp(22px,4.5vw,64px);
+      opacity:0;transform:translateY(6px) scale(.8) rotate(-4deg);
+      pointer-events:none;will-change:transform,opacity;white-space:nowrap;
     }
-    /* Living, ever-changing green gradient INSIDE the text (no glow) */
-    .money-text {
-      margin: 0;
-      font-size: clamp(64px, 13vw, 280px);
-      line-height: 0.95;
-      color: transparent;
-      background: linear-gradient(120deg, #0f5132, #00c853, #22d46a, #0ea5a5, #16a34a, #0f5132);
-      background-size: 400% 400%;
-      -webkit-background-clip: text; background-clip: text;
-      animation: moneyShift 10s ease-in-out infinite;
+    .hitpop.white{color:#fff;text-shadow:0 0 8px rgba(255,255,255,.35)}
+    .hitpop.gold{color:transparent;background:linear-gradient(180deg,var(--gold1),var(--gold2));-webkit-background-clip:text;background-clip:text;text-shadow:0 0 10px rgba(255,216,128,.55)}
+    .hitpop.show{animation:popRise 900ms cubic-bezier(.16,.84,.44,1) forwards}
+    @keyframes popRise{
+      0%{opacity:0;transform:translateY(6px) scale(.8) rotate(-6deg)}
+      15%{opacity:1;transform:translateY(-2px) scale(1.05) rotate(-2deg)}
+      100%{opacity:0;transform:translateY(-48px) scale(1) rotate(0deg)}
     }
-    @keyframes moneyShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    /* XP hit markers: centered horizontally near the value */
-    .floater {
-      position: absolute;
-      left: 50%;
-      bottom: 6%;
-      transform: translateX(-50%) translateY(0);
-      font-size: clamp(18px, 3.8vw, 56px);
-      opacity: 0;
-      pointer-events: none;
-      will-change: transform, opacity;
-    }
-    .floater.show { animation: floatUp 1200ms ease-out forwards; }
-    .floater.white { color: #fff; }
-    .floater.gold {
-      color: transparent;
-      background: linear-gradient(180deg, var(--gold1), var(--gold2));
-      -webkit-background-clip: text; background-clip: text;
-    }
-    @keyframes floatUp {
-      0%   { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.98); }
-      15%  { opacity: 1; }
-      100% { opacity: 0; transform: translateX(-50%) translateY(-80px) scale(1.02); }
-    }
-
-    .sr-only { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
-
-    /* Chat UNDER the number, left-aligned */
-    #chatArea {
-      position: absolute;
-      left: clamp(12px, 4vw, 28px);
-      bottom: clamp(12px, 4vw, 28px);
-      width: min(960px, calc(100% - 2*clamp(12px, 4vw, 28px)));
-    }
-    #chat-feed { margin: 0; padding: 0; list-style: none; }
-    .chat-line {
-      margin: 0 0 6px 0;
-      font-size: clamp(14px, 2.2vw, 20px);
-      line-height: 1.1;
-      letter-spacing: 0.2px;
-      color: #fff;
-      transition: color 400ms linear, opacity 400ms linear;
-    }
-    .chat-line.fade-out { color: #000; opacity: 0.05; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .money-text { animation: none; background: #16a34a; color:#16a34a; -webkit-background-clip: initial; background-clip: initial; }
-      .floater { display:none; }
+    /* Chat under-left */
+    #chatArea{position:absolute;left:clamp(12px,4vw,28px);bottom:clamp(12px,4vw,28px);width:min(960px,calc(100% - 2*clamp(12px,4vw,28px)))}
+    #chat-feed{margin:0;padding:0;list-style:none}
+    .chat-line{margin:0 0 6px 0;font-size:clamp(14px,2.2vw,20px);line-height:1.1;letter-spacing:.2px;color:#fff;transition:color 400ms linear,opacity 400ms linear}
+    .chat-line.fade-out{color:#000;opacity:.05}
+    .sr-only{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+    @media (prefers-reduced-motion:reduce){
+      .money-text{animation:none;background:#16a34a;color:#16a34a;-webkit-background-clip:initial;background-clip:initial}
+      .hitpop{display:none}
     }
   </style>
 </head>
 <body>
   <div id="widget">
     <div id="counterArea">
-      <h1 id="money-total" class="money-text" role="status" aria-live="polite">$0</h1>
+      <div id="money-wrap" style="--scale:1">
+        <h1 id="money-total" class="money-text" role="status" aria-live="polite">$0</h1>
+        <!-- hit pops will be injected here -->
+      </div>
       <span id="money-total-sr" class="sr-only">Total: $0</span>
     </div>
-
     <div id="chatArea" aria-live="polite" aria-relevant="additions">
       <ul id="chat-feed"></ul>
     </div>
