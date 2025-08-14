@@ -3,7 +3,7 @@
   "tiers": [
     {
       "id": 1,
-      "weight": 48,
+      "weight": 46,
       "min": 1,
       "max": 20,
       "lines": [
