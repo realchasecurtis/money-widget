@@ -9,11 +9,9 @@
     startISO: '2025-01-01T00:00:00Z',
     base: 0,
     seed: 'ultrawealth-v1',
-    eventsPerMinute: { mean: 1.4, max: 4 },
     chat: { maxVisible: 5, fadeMs: 400 }
   };
 
-  // Empty placeholder — will be replaced entirely by messages.json
   let TIERCFG = { tiers: [], chat: { cooldownSeconds: 45, noRepeatWindow: 7 } };
 
   const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -78,48 +76,60 @@
   }
   function randInt(rng, min, max) { return Math.floor(rng() * (max - min + 1)) + min; }
 
+  // ==== Exactly 60 events per minute ====
   function eventsForMinute(minuteIndex) {
     const rng = minutePRNG(minuteIndex);
     const tiers = TIERCFG.tiers;
     const weights = tiers.map(t => t.weight);
-    const m = CONFIG.eventsPerMinute.mean, M = CONFIG.eventsPerMinute.max;
-    let k = 0; for (let i=0;i<M;i++) if (rng() < (m / M)) k++;
-    const usedSecs = new Set(); const events = []; let sum = 0;
-    for (let i=0;i<k;i++) {
-      let sec = randInt(rng, 0, 59);
-      while (usedSecs.has(sec)) { sec = (sec + 1 + Math.floor(rng()*5)) % 60; }
-      usedSecs.add(sec);
+
+    const k = 60; // One event every second
+    const events = [];
+    let sum = 0;
+
+    for (let sec = 0; sec < 60; sec++) {
       const tIdx = weightedPick(rng, weights);
       const t = tiers[tIdx];
       const amount = randInt(rng, t.min, t.max);
-      const lineIdx = t.lines.length ? randInt(rng, 0, t.lines.length-1) : -1;
+      const lineIdx = t.lines.length ? randInt(rng, 0, t.lines.length - 1) : -1;
       events.push({ sec, tierIdx: tIdx, amount, lineIdx });
       sum += amount;
     }
-    events.sort((a,b)=>a.sec-b.sec);
+
     return { sum, events, k };
   }
 
-  // No-repeat + cooldown
+  // ==== Chat control ====
   let recentMessages = [];
   let lastTierTime = {};
+  let lastChatMinute = -1; // to enforce 1 message per minute
+
   function appendChat(tierIdx, text) {
+    const now = new Date();
+    const thisMinute = now.getUTCMinutes();
+
+    // Only allow one chat message per minute
+    if (thisMinute === lastChatMinute) return;
+    lastChatMinute = thisMinute;
+
     const maxV = CONFIG.chat.maxVisible || 5;
     const fadeMs = CONFIG.chat.fadeMs || 400;
     const noRepeatWindow = TIERCFG.chat?.noRepeatWindow || 0;
     const cooldownSeconds = TIERCFG.chat?.cooldownSeconds || 0;
-    const now = Date.now();
-    if (cooldownSeconds > 0 && lastTierTime[tierIdx] && now - lastTierTime[tierIdx] < cooldownSeconds * 1000) {
+    const ts = now.getTime();
+
+    if (cooldownSeconds > 0 && lastTierTime[tierIdx] && ts - lastTierTime[tierIdx] < cooldownSeconds * 1000) {
       return;
     }
     if (noRepeatWindow > 0 && recentMessages.includes(text)) {
       return;
     }
-    lastTierTime[tierIdx] = now;
+
+    lastTierTime[tierIdx] = ts;
     recentMessages.push(text);
     if (recentMessages.length > noRepeatWindow) {
       recentMessages.shift();
     }
+
     if (chatFeed.children.length >= maxV) {
       const oldest = chatFeed.firstElementChild;
       if (oldest) {
@@ -131,6 +141,7 @@
       }
     }
     doAppend();
+
     function doAppend() {
       const li = document.createElement('li');
       li.className = `chat-line t${tierIdx+1}`;
@@ -175,6 +186,7 @@
     const now = new Date();
     const idx = Math.max(0, Math.floor((now.getTime() - START_MS) / 60000));
     const sec = now.getUTCSeconds();
+
     if (idx !== minuteIndex) {
       minuteIndex = idx;
       baseHistorical += eventsForMinute(idx-1 >= 0 ? idx-1 : 0).sum;
@@ -182,6 +194,7 @@
       firedCount = 0;
       setTotal(baseHistorical);
     }
+
     while (firedCount < currentMinuteEvents.length && currentMinuteEvents[firedCount].sec <= sec) {
       const ev = currentMinuteEvents[firedCount++];
       const tier = TIERCFG.tiers[ev.tierIdx];
@@ -192,11 +205,12 @@
         appendChat(ev.tierIdx, tier.lines[ev.lineIdx]);
       }
     }
+
     const delay = 1000 - (now.getMilliseconds());
     setTimeout(tick, Math.max(10, delay));
   }
 
-  // ✅ Now we only start after JSON is loaded
+  // Wait for messages.json before starting
   fetch('messages.json?v=1', { cache: 'no-store' })
     .then(r => r.ok ? r.json() : null)
     .then(json => {
@@ -209,5 +223,4 @@
       }
     })
     .catch(err => console.error(err));
-
 })();
