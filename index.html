@@ -3,104 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Money Widget + Tiered Chat</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: transparent;
-      font-family: 'Anton', sans-serif;
-      overflow: hidden;
-    }
-
-    #money-widget-container {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 65%;
-      width: 100%;
-      padding: 0 5%;
-      box-sizing: border-box;
-    }
-
-    .money-text {
-      font-size: clamp(2.5rem, 12vw, 7.5rem);
-      font-weight: 900;
-      background: linear-gradient(-45deg, #00ff00, #00aa00, #00ff66, #009900);
-      background-size: 400% 400%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradientShift 6s ease infinite;
-      word-break: break-word;
-      text-align: center;
-    }
-
-    #chat-feed {
-      position: absolute;
-      top: 72%;
-      left: 5%;
-      width: 90%;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      font-size: 1.1rem;
-      font-weight: 900;
-      pointer-events: none;
-    }
-
-    .chat-line {
-      color: white;
-      opacity: 1;
-      transition: opacity 1s ease-in;
-      text-shadow: 1px 1px 2px black;
-      text-align: left;
-      width: auto;
-    }
-
-    .chat-line.faded {
-      opacity: 0;
-    }
-
-    .floating-number {
-      position: absolute;
-      font-size: 1.25rem;
-      font-weight: bold;
-      color: white;
-      opacity: 1;
-      right: 10%;
-      top: 35%;
-      pointer-events: none;
-      z-index: 10;
-      transition: transform 1s ease-out, opacity 1s ease-out;
-    }
-
-    .floating-number.animate {
-      transform: translateY(-50px);
-      opacity: 0;
-    }
-
-    .floating-number.gold {
-      color: gold;
-      text-shadow: 0 0 5px #ffd700, 0 0 10px #ffea00;
-    }
-
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-  </style>
+  <title>Money Go Up</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="money-widget-container">
-    <div id="money-widget" class="money-text"></div>
+  <div class="container">
+    <div class="money-counter" id="moneyCounter">$0</div>
+    <div class="floating-container" id="floatingContainer"></div>
   </div>
-  <div id="chat-feed"></div>
+  <div class="chat-feed" id="chatFeed"></div>
   <script src="money-widget.js"></script>
 </body>
 </html>
