@@ -113,7 +113,7 @@
 
   function appendChat(tierIdx, text) {
     const maxV = CONFIG.chat.maxVisible || 5;
-    const fadeMs = CONFIG.chat.fadeMs || 400;
+    const fadeMs = CONFIG.chat.fadeMs || 100;
     if (chatFeed.children.length >= maxV) {
       const oldest = chatFeed.firstElementChild;
       if (oldest) {
