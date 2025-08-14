@@ -134,23 +134,40 @@
     }
   }
 
-  // Create a pop exactly at the top-right of the money text
-  function floater(amount, tierIdx) {
-    const chip = document.createElement('div');
-    chip.className = 'floater show ' + (tierIdx === 3 ? 'gold' : 'white'); // tierIdx 3 == Tier 4
-    chip.textContent = `+${fmt.format(amount)}`;
+  // Create a pop near the top-right of the money text, but clamp inside the container
+function floater(amount, tierIdx) {
+  const chip = document.createElement('div');
+  chip.className = 'floater show ' + (tierIdx === 3 ? 'gold' : 'white');
+  chip.textContent = `+${fmt.format(amount)}`;
 
-    // Position near money text's top-right corner
-    const numberRect = moneyEl.getBoundingClientRect();
-    const containerRect = counterArea.getBoundingClientRect();
-    const x = (numberRect.right - containerRect.left) - 6; // inset a bit from right edge
-    const y = (numberRect.top - containerRect.top) - 8;    // slightly above the top
-    chip.style.left = x + 'px';
-    chip.style.top  = y + 'px';
+  const numberRect = moneyEl.getBoundingClientRect();
+  const containerRect = counterArea.getBoundingClientRect();
 
-    counterArea.appendChild(chip);
-    setTimeout(()=>chip.remove(), 1300);
-  }
+  // Append hidden first so we can measure its real width
+  chip.style.position = 'absolute';
+  chip.style.visibility = 'hidden';
+  chip.style.left = '0';
+  chip.style.top = '0';
+  chip.style.whiteSpace = 'nowrap'; // avoid wrap during measurement
+  counterArea.appendChild(chip);
+
+  // Default anchor: slightly in from the number’s top-right
+  let x = (numberRect.right - containerRect.left) - 6;
+  const y = (numberRect.top   - containerRect.top)  - 8;
+
+  // Keep the chip fully inside the container (4px breathing room)
+  const chipWidth = chip.offsetWidth;
+  const maxX = containerRect.width - chipWidth - 4;
+  if (x > maxX) x = maxX;
+  if (x < 0)    x = 0;
+
+  // Finalize position and reveal
+  chip.style.left = x + 'px';
+  chip.style.top  = y + 'px';
+  chip.style.visibility = 'visible';
+
+  setTimeout(() => chip.remove(), 1300);
+}
 
   let minuteIndex = 0;
   let baseHistorical = 0;
