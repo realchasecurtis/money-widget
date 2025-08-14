@@ -3,9 +3,9 @@
   "tiers": [
     {
       "id": 1,
-      "weight": 62,
+      "weight": 46,
       "min": 1,
-      "max": 5,
+      "max": 20,
       "lines": [
         "Cleared a filament charm from the junk drawer",
         "Sold naming rights to my fridge shelves",
@@ -825,9 +825,9 @@
     },
     {
       "id": 2,
-      "weight": 28,
-      "min": 6,
-      "max": 75,
+      "weight": 24,
+      "min": 21,
+      "max": 100,
       "lines": [
         "Rented a merch heat press to a local event",
         "Resold a refurbished pizza oven",
@@ -1208,8 +1208,8 @@
     },
     {
       "id": 3,
-      "weight": 9,
-      "min": 200,
+      "weight": 19,
+      "min": 101,
       "max": 5000,
       "lines": [
         "Audited a storefront catalog",
@@ -1397,9 +1397,9 @@
     },
     {
       "id": 4,
-      "weight": 1,
+      "weight": 11,
       "min": 80000,
-      "max": 750000,
+      "max": 1000000,
       "lines": [
         "Exchanged a minority stake in a micro‑SaaS",
         "Signed a regional wholesale deal",
