@@ -114,7 +114,7 @@
     const lines = Array.from(chatFeed.children);
     if (lines.length > 7) lines[0].remove();
     lines.forEach((line, index) => {
-      if (index < lines.length - 2) {
+      if (index < lines.length - 5) {
         line.classList.add("faded");
       } else {
         line.classList.remove("faded");
