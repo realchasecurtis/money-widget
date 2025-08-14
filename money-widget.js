@@ -2,13 +2,14 @@
   const moneyEl = document.getElementById('money-total');
   const moneySR = document.getElementById('money-total-sr');
   const chatFeed = document.getElementById('chat-feed');
+  const counterArea = document.getElementById('counterArea');
 
   const CONFIG = {
     startISO: '2025-01-01T00:00:00Z',
     base: 0,
     seed: 'ultrawealth-v1',
     eventsPerMinute: { mean: 1.4, max: 4 },
-    chat: { maxVisible: 7 }
+    chat: { maxVisible: 5, fadeMs: 400 }
   };
 
   let TIERCFG = {
@@ -43,9 +44,7 @@
   }
   const START_MS = Date.parse(CONFIG.startISO);
   const SEED_BASE = hashString32(CONFIG.seed);
-  function minutePRNG(minuteIndex) {
-    return mulberry32(SEED_BASE ^ (minuteIndex >>> 0));
-  }
+  function minutePRNG(minuteIndex) { return mulberry32(SEED_BASE ^ (minuteIndex >>> 0)); }
   function weightedPick(rng, weights) {
     const total = weights.reduce((a,b)=>a+b,0);
     let x = rng() * total, acc = 0;
@@ -77,21 +76,36 @@
   }
 
   function appendChat(tierIdx, text) {
-    const li = document.createElement('li');
-    li.className = `chat-line t${tierIdx+1}`;
-    li.textContent = text;
-    chatFeed.appendChild(li);
-    const maxV = CONFIG.chat.maxVisible || 7;
-    while (chatFeed.children.length > maxV) chatFeed.removeChild(chatFeed.firstChild);
-    chatFeed.scrollTop = chatFeed.scrollHeight;
+    const maxV = CONFIG.chat.maxVisible || 5;
+    const fadeMs = CONFIG.chat.fadeMs || 400;
+    // If we're at capacity, fade out & remove the oldest FIRST to keep exactly 5 visible
+    if (chatFeed.children.length >= maxV) {
+      const oldest = chatFeed.firstElementChild;
+      if (oldest) {
+        oldest.classList.add('fade-out');
+        // lock height to avoid jump during fade
+        oldest.style.height = oldest.offsetHeight + 'px';
+        oldest.style.overflow = 'hidden';
+        setTimeout(() => { oldest.remove(); doAppend(); }, fadeMs);
+        return;
+      }
+    }
+    doAppend();
+
+    function doAppend() {
+      const li = document.createElement('li');
+      li.className = `chat-line t${tierIdx+1}`;
+      li.textContent = text;
+      chatFeed.appendChild(li);
+    }
   }
 
-  function floater(amount) {
+  function floater(amount, tierIdx) {
     const chip = document.createElement('div');
-    chip.className = 'floater show';
+    chip.className = 'floater show ' + (tierIdx === 3 ? 'gold' : 'white'); // tierIdx is 0-based; t4 => idx 3
     chip.textContent = `+${fmt.format(amount)}`;
-    document.getElementById('counterArea').appendChild(chip);
-    setTimeout(()=>chip.remove(), 1900);
+    counterArea.appendChild(chip);
+    setTimeout(()=>chip.remove(), 1300);
   }
 
   let minuteIndex = 0;
@@ -128,7 +142,7 @@
       const tier = TIERCFG.tiers[ev.tierIdx];
       baseHistorical += ev.amount;
       setTotal(baseHistorical);
-      floater(ev.amount);
+      floater(ev.amount, ev.tierIdx);
       if (tier && tier.lines && ev.lineIdx >= 0) appendChat(ev.tierIdx, tier.lines[ev.lineIdx]);
     }
     const delay = 1000 - (now.getMilliseconds());
