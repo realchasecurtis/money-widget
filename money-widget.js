@@ -9,20 +9,28 @@
     startISO: '2025-01-01T00:00:00Z',
     base: 0,
     seed: 'ultrawealth-v1',
+    eventsPerMinute: { mean: 1.4, max: 4 },
     chat: { maxVisible: 5, fadeMs: 400 }
   };
 
-  // Empty default, will be replaced by JSON
-  let TIERCFG = { tiers: [], chat: { cooldownSeconds: 45, noRepeatWindow: 7 } };
+  let TIERCFG = {
+    tiers: [
+      { id: 1, weight: 62, min: 1,  max: 5,    lines: ['Sold a sticker', 'Sold a candle']},
+      { id: 2, weight: 28, min: 6,  max: 75,   lines: ['Flipped an espresso machine']},
+      { id: 3, weight: 9,  min: 200, max: 5000, lines: ['Closed a workshop contract']},
+      { id: 4, weight: 1,  min: 80000, max: 750000, lines: ['Auctioned a premium domain']}
+    ],
+    chat: { cooldownSeconds: 45, noRepeatWindow: 7 }
+  };
 
   const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
   function setTotal(n) {
     moneyEl.textContent = fmt.format(n);
     moneySR.textContent = 'Total: ' + fmt.format(n);
-    requestAnimationFrame(autoFit);
+    requestAnimationFrame(autoFit); // ensure digits never clip
   }
 
-  // Auto-fit
+  // ----- Robust auto-fit (binary search font size to fit width & height) -----
   const autoFit = (() => {
     let rafId = null;
     return function autoFit() {
@@ -31,15 +39,18 @@
         const maxW = Math.max(0, fitBox.clientWidth - 8);
         const maxH = Math.max(0, fitBox.clientHeight - 8);
         if (!maxW || !maxH) return;
-        let low = 10, high = 1024;
+
+        // Binary search the largest font size that fits in both width and height
+        let low = 10, high = 1024; // px
+        const originalStyle = moneyEl.style.fontSize;
         while (low < high) {
           const mid = Math.floor((low + high + 1) / 2);
           moneyEl.style.fontSize = mid + 'px';
           const rect = moneyEl.getBoundingClientRect();
           if (rect.width <= maxW && rect.height <= maxH) {
-            low = mid;
+            low = mid; // fits — try larger
           } else {
-            high = mid - 1;
+            high = mid - 1; // too big — go smaller
           }
         }
         moneyEl.style.fontSize = low + 'px';
@@ -47,6 +58,7 @@
     };
   })();
 
+  // Re-fit on resize/orientation + when fonts load
   const ro = new ResizeObserver(autoFit);
   ro.observe(fitBox);
   window.addEventListener('resize', autoFit);
@@ -77,59 +89,31 @@
   }
   function randInt(rng, min, max) { return Math.floor(rng() * (max - min + 1)) + min; }
 
-  // Exactly 60 events per minute
   function eventsForMinute(minuteIndex) {
     const rng = minutePRNG(minuteIndex);
     const tiers = TIERCFG.tiers;
     const weights = tiers.map(t => t.weight);
-
-    const events = [];
-    let sum = 0;
-
-    for (let sec = 0; sec < 60; sec++) {
+    const m = CONFIG.eventsPerMinute.mean, M = CONFIG.eventsPerMinute.max;
+    let k = 0; for (let i=0;i<M;i++) if (rng() < (m / M)) k++;
+    const usedSecs = new Set(); const events = []; let sum = 0;
+    for (let i=0;i<k;i++) {
+      let sec = randInt(rng, 0, 59);
+      while (usedSecs.has(sec)) { sec = (sec + 1 + Math.floor(rng()*5)) % 60; }
+      usedSecs.add(sec);
       const tIdx = weightedPick(rng, weights);
       const t = tiers[tIdx];
       const amount = randInt(rng, t.min, t.max);
-      const lineIdx = t.lines.length ? randInt(rng, 0, t.lines.length - 1) : -1;
+      const lineIdx = t.lines.length ? randInt(rng, 0, t.lines.length-1) : -1;
       events.push({ sec, tierIdx: tIdx, amount, lineIdx });
       sum += amount;
     }
-
-    return { sum, events, k: 60 };
+    events.sort((a,b)=>a.sec-b.sec);
+    return { sum, events, k };
   }
 
-  // Chat control
-  let recentMessages = [];
-  let lastTierTime = {};
-  let lastChatMinute = -1;
-
   function appendChat(tierIdx, text) {
-    const now = new Date();
-    const thisMinute = now.getUTCMinutes();
-
-    // Only 1 chat per minute
-    if (thisMinute === lastChatMinute) return;
-    lastChatMinute = thisMinute;
-
     const maxV = CONFIG.chat.maxVisible || 5;
     const fadeMs = CONFIG.chat.fadeMs || 400;
-    const noRepeatWindow = TIERCFG.chat?.noRepeatWindow || 0;
-    const cooldownSeconds = TIERCFG.chat?.cooldownSeconds || 0;
-    const ts = now.getTime();
-
-    if (cooldownSeconds > 0 && lastTierTime[tierIdx] && ts - lastTierTime[tierIdx] < cooldownSeconds * 1000) {
-      return;
-    }
-    if (noRepeatWindow > 0 && recentMessages.includes(text)) {
-      return;
-    }
-
-    lastTierTime[tierIdx] = ts;
-    recentMessages.push(text);
-    if (recentMessages.length > noRepeatWindow) {
-      recentMessages.shift();
-    }
-
     if (chatFeed.children.length >= maxV) {
       const oldest = chatFeed.firstElementChild;
       if (oldest) {
@@ -150,16 +134,20 @@
     }
   }
 
+  // Create a pop exactly at the top-right of the money text
   function floater(amount, tierIdx) {
     const chip = document.createElement('div');
-    chip.className = 'floater show ' + (tierIdx === 3 ? 'gold' : 'white');
+    chip.className = 'floater show ' + (tierIdx === 3 ? 'gold' : 'white'); // tierIdx 3 == Tier 4
     chip.textContent = `+${fmt.format(amount)}`;
+
+    // Position near money text's top-right corner
     const numberRect = moneyEl.getBoundingClientRect();
     const containerRect = counterArea.getBoundingClientRect();
-    const x = (numberRect.right - containerRect.left) - 6;
-    const y = (numberRect.top - containerRect.top) - 8;
+    const x = (numberRect.right - containerRect.left) - 6; // inset a bit from right edge
+    const y = (numberRect.top - containerRect.top) - 8;    // slightly above the top
     chip.style.left = x + 'px';
     chip.style.top  = y + 'px';
+
     counterArea.appendChild(chip);
     setTimeout(()=>chip.remove(), 1300);
   }
@@ -186,7 +174,6 @@
     const now = new Date();
     const idx = Math.max(0, Math.floor((now.getTime() - START_MS) / 60000));
     const sec = now.getUTCSeconds();
-
     if (idx !== minuteIndex) {
       minuteIndex = idx;
       baseHistorical += eventsForMinute(idx-1 >= 0 ? idx-1 : 0).sum;
@@ -194,33 +181,21 @@
       firedCount = 0;
       setTotal(baseHistorical);
     }
-
     while (firedCount < currentMinuteEvents.length && currentMinuteEvents[firedCount].sec <= sec) {
       const ev = currentMinuteEvents[firedCount++];
       const tier = TIERCFG.tiers[ev.tierIdx];
       baseHistorical += ev.amount;
       setTotal(baseHistorical);
       floater(ev.amount, ev.tierIdx);
-      if (tier && tier.lines && ev.lineIdx >= 0) {
-        appendChat(ev.tierIdx, tier.lines[ev.lineIdx]);
-      }
+      if (tier && tier.lines && ev.lineIdx >= 0) appendChat(ev.tierIdx, tier.lines[ev.lineIdx]);
     }
-
     const delay = 1000 - (now.getMilliseconds());
     setTimeout(tick, Math.max(10, delay));
   }
 
-  // Wait for messages.json before starting — ensures tiers exist
   fetch('messages.json?v=1', { cache: 'no-store' })
     .then(r => r.ok ? r.json() : null)
-    .then(json => {
-      if (json && Array.isArray(json.tiers) && json.tiers.length > 0) {
-        TIERCFG = json;
-        resyncForNow();
-        tick();
-      } else {
-        console.error('messages.json missing or invalid tiers');
-      }
-    })
-    .catch(err => console.error(err));
+    .then(json => { if (json) TIERCFG = json; })
+    .catch(()=>{})
+    .finally(() => { resyncForNow(); tick(); });
 })();
